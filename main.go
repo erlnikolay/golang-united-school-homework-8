@@ -186,7 +186,9 @@ func Perform(args Arguments, writer io.Writer) error {
 			for _, valUser := range user {
 				for _, valUserFromFile := range usersFromFile {
 					if valUser.Id == valUserFromFile.Id {
-						return fmt.Errorf("Item with id %v already exists", valUserFromFile.Id)
+						writer.Write([]byte(concat("Item with id ", concat(valUserFromFile.Id, " already exists"))))
+						return nil
+						//return fmt.Errorf("Item with id %v already exists", valUserFromFile.Id)
 					}
 				}
 				// append new record to array
@@ -266,7 +268,12 @@ func Perform(args Arguments, writer io.Writer) error {
 					if args["operation"] == "findById" {
 						arrayOfUserListNew = append(arrayOfUserListNew, valUser)
 						// print user
-						fmt.Printf("{\"id\":\"%v\",\"email\":\"%v\",\"age\":%v}\n", valUser.Id, valUser.Email, valUser.Age)
+						itemBytes, errJson = json.Marshal(&valUser)
+						if errJson != nil {
+							return fmt.Errorf("Marshal json %v to string finished with error: %w\n", valUser, errJson)
+						}
+						writer.Write([]byte(strings.ToLower(string(itemBytes))))
+						//fmt.Printf("{\"id\":\"%v\",\"email\":\"%v\",\"age\":%v}\n", valUser.Id, valUser.Email, valUser.Age)
 						return nil
 					}
 					triggerThereIsNotId = true
@@ -277,8 +284,15 @@ func Perform(args Arguments, writer io.Writer) error {
 			// findById didn't find
 			if !triggerThereIsNotId {
 				//return nil
-				//return fmt.Errorf("Item with id %v not found", args["id"])
-				return fmt.Errorf("Item with id %s not found", args["id"])
+				//return fmt.Errorf("Item with id %s not found", args["id"])
+				if args["operation"] == "findById" {
+					return nil
+				}
+				if args["operation"] == "remove" {
+					writer.Write([]byte(concat("Item with id ", concat(args["id"], " not found"))))
+					return nil
+				}
+
 			}
 			// save result to file if operation remove
 			if args["operation"] == "remove" {
@@ -309,7 +323,7 @@ func Perform(args Arguments, writer io.Writer) error {
 
 	// it's not permitten options with operaton list
 	if args["operation"] == "list" {
-		user := []UserRecord{}
+		//user := []UserRecord{}
 		if args["item"] != "" {
 			// there is item
 			return ErrItemShouldntbeused
@@ -334,12 +348,13 @@ func Perform(args Arguments, writer io.Writer) error {
 				return fmt.Errorf("Error is happened when file %v was reading, error: %w", args["fileName"], fileErr)
 			}
 			// Unmarshal the json from the json file
-			errJson = json.Unmarshal(fileByte, &user)
-			if errJson != nil {
-				return fmt.Errorf("Ummarshal json from file %v, finished with error: %w\n", args["fileName"], errJson)
-			}
+			//errJson = json.Unmarshal(fileByte, &user)
+			//if errJson != nil {
+			//	return fmt.Errorf("Ummarshal json from file %v, finished with error: %w\n", args["fileName"], errJson)
+			//}
 		}
-		fmt.Println(user)
+		writer.Write(fileByte)
+		//fmt.Println(user)
 		return nil
 	}
 	return fmt.Errorf("Unknown error")
